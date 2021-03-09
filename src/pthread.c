@@ -208,6 +208,8 @@ extern char monitor_thread_fence2;
 extern char monitor_thread_fence3;
 extern char monitor_thread_fence4;
 
+
+static __thread int ignore_new_threads = 0;
 /*
  *----------------------------------------------------------------------
  *  INTERNAL THREAD FUNCTIONS
@@ -835,6 +837,7 @@ monitor_unblock_shootdown(void)
 void
 monitor_disable_new_threads(void)
 {
+#if 0
     struct monitor_thread_node *tn;
 
     tn = monitor_get_tn();
@@ -843,12 +846,17 @@ monitor_disable_new_threads(void)
 	return;
     }
     tn->tn_ignore_threads = 1;
+#else
+    ignore_new_threads = 1;
+#endif
 }
 
 void
 monitor_enable_new_threads(void)
 {
+#if 0
     struct monitor_thread_node *tn;
+
 
     tn = monitor_get_tn();
     if (tn == NULL) {
@@ -856,6 +864,10 @@ monitor_enable_new_threads(void)
 	return;
     }
     tn->tn_ignore_threads = 0;
+#else
+        ignore_new_threads = 0;
+#endif
+    
 }
 
 /*
@@ -1102,7 +1114,7 @@ MONITOR_WRAP_NAME(pthread_create)(PTHREAD_CREATE_PARAM_LIST)
      * pthread_create(), don't put it on the thread list and don't
      * give any callbacks.
      */
-    if (my_tn != NULL && my_tn->tn_ignore_threads) {
+    if (ignore_new_threads) {
 	MONITOR_DEBUG1("ignoring this new thread\n");
 	return (*real_pthread_create)(thread, attr, start_routine, arg);
     }
